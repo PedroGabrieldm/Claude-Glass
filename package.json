@@ -8,7 +8,8 @@
     "test": "npm run test:parity && npm run test:smoke",
     "test:parity": "node test/bridge-parity.js",
     "test:smoke": "node test/smoke/run.js",
-    "dist:win": "npx electron-builder --win zip"
+    "icons": "python build/make-icons.py",
+    "dist:win": "npx electron-builder --win"
   },
   "author": "Vitória Silva — Data System",
   "license": "MIT",
@@ -28,10 +29,39 @@
       "usage.js",
       "auth.js",
       "config.json",
-      "renderer/**"
+      "renderer/**",
+      "assets/**"
     ],
     "win": {
-      "target": "zip"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Claude Glass",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico",
+      "artifactName": "Claude-Glass-Setup-${version}.${ext}"
     }
   }
 }
