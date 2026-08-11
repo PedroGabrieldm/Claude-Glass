@@ -1,77 +1,10 @@
-const SVGNS = 'http://www.w3.org/2000/svg'
+// SVGNS, os sprites e os construtores vivem em sprite.js (carregado antes deste)
 const el = (id) => document.getElementById(id)
 
-// Claude pixel-art sprite
-const SPRITE = [
-  '.########.',
-  '.########.',
-  '##########',
-  '###o##o###',
-  '##########',
-  '.########.',
-  '.########.',
-  '.#.#..#.#.',
-  '.#.#..#.#.',
-]
+buildPetSprite(el('body'), el('eyes'))
 
-;(function buildPixel() {
-  const body = el('body')
-  const eyes = el('eyes')
-  const C = 10
-  SPRITE.forEach((row, r) => {
-    for (let c = 0; c < row.length; c++) {
-      const ch = row[c]
-      if (ch === '.') continue
-      const rect = document.createElementNS(SVGNS, 'rect')
-      rect.setAttribute('x', c * C)
-      rect.setAttribute('y', r * C)
-      rect.setAttribute('width', C)
-      rect.setAttribute('height', C)
-      body.appendChild(rect)
-      if (ch === 'o') {
-        const eye = document.createElementNS(SVGNS, 'rect')
-        eye.setAttribute('x', c * C)
-        eye.setAttribute('y', r * C)
-        eye.setAttribute('width', C)
-        eye.setAttribute('height', C)
-        eyes.appendChild(eye)
-      }
-    }
-  })
-})()
-
-// hard hat (mechanic mode): pixel-art bitmap so it matches the pet's blocky look
-;(function buildHat() {
-  const g = el('hardhat')
-  if (!g) return
-  // L = highlight, Y = main, D = shadow rim, B = brim
-  const HAT = [
-    '.....YLLY.....',
-    '...YYYLLYYY...',
-    '..YYYYLLYYYY..',
-    '.YYYYYLLYYYYY.',
-    '.DDDDDDDDDDDD.',
-    'BBBBBBBBBBBBBB',
-  ]
-  const COL = { L: '#ffe27a', Y: '#f5c518', D: '#d99a00', B: '#c98f14' }
-  const C = 8 // cell size in svg units
-  const cols = HAT[0].length
-  const ox = 50 - (cols * C) / 2 // centered on the head (center x = 50)
-  const oy = -24 // rises above the head, brim ends just over the eyes
-  HAT.forEach((row, r) => {
-    for (let c = 0; c < row.length; c++) {
-      const ch = row[c]
-      if (ch === '.') continue
-      const rect = document.createElementNS(SVGNS, 'rect')
-      rect.setAttribute('x', ox + c * C)
-      rect.setAttribute('y', oy + r * C)
-      rect.setAttribute('width', C)
-      rect.setAttribute('height', C)
-      rect.setAttribute('fill', COL[ch])
-      g.appendChild(rect)
-    }
-  })
-})()
+// capacete: sobe acima da cabeca, aba parando logo acima dos olhos
+buildHatSprite(el('hardhat'))
 
 // night scene backdrop (clouds, crescent moon, stars, dotted ground/sky)
 ;(function buildScene() {
@@ -650,6 +583,7 @@ let settingsBaseline = null
 function snapshotSettings() {
   return JSON.stringify({
     autostart: el('set-autostart').checked,
+    strip: el('set-strip').checked,
     alerts: el('set-alerts').checked,
     t1: el('set-t1').value,
     t2: el('set-t2').value,
@@ -667,6 +601,7 @@ function clearSaveDirty() {
 function populateSettings() {
   const c = currentConfig || {}
   el('set-autostart').checked = c.startWithWindows !== false
+  el('set-strip').checked = (c.minimizeTo || 'inline') === 'strip'
   el('set-alerts').checked = c.alerts !== false
   const th = c.alertThresholds || [80, 95]
   el('set-t1').value = th[0] != null ? th[0] : 80
@@ -695,7 +630,7 @@ for (const b of document.querySelectorAll('.num-btn')) {
   })
 }
 // light up Save whenever an editable field changes
-for (const id of ['set-autostart', 'set-alerts', 'set-t1', 'set-t2', 'set-fire']) {
+for (const id of ['set-autostart', 'set-strip', 'set-alerts', 'set-t1', 'set-t2', 'set-fire']) {
   el(id).addEventListener('input', refreshSaveDirty)
   el(id).addEventListener('change', refreshSaveDirty)
 }
@@ -709,6 +644,7 @@ el('set-save').addEventListener('click', () => {
   const fire = num('set-fire')
   window.api.saveConfig({
     startWithWindows: el('set-autostart').checked,
+    minimizeTo: el('set-strip').checked ? 'strip' : 'inline',
     alerts: el('set-alerts').checked,
     alertThresholds: [num('set-t1'), num('set-t2')]
       .filter((n) => n >= 1 && n <= 100)
@@ -719,15 +655,19 @@ el('set-save').addEventListener('click', () => {
   document.body.classList.remove('settings-open')
   fitSize()
 })
-el('min').addEventListener('click', () => {
+// Minimizar tem dois destinos: encolher no lugar (padrao) ou virar a barra
+// sobre a taskbar. A barra e o widget minimizado, nao um segundo app.
+function minimize() {
+  if ((currentConfig.minimizeTo || 'inline') === 'strip') {
+    window.api.minimizeToStrip()
+    return
+  }
   document.body.classList.toggle('collapsed')
   fitSize()
-})
+}
+el('min').addEventListener('click', minimize)
 // double-click the pet to collapse / expand
-el('pet').addEventListener('dblclick', () => {
-  document.body.classList.toggle('collapsed')
-  fitSize()
-})
+el('pet').addEventListener('dblclick', minimize)
 
 // poke the pet -> bouncy squish + hearts
 el('pet').addEventListener('click', () => pokePet())

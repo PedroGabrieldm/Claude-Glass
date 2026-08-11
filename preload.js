@@ -16,4 +16,9 @@ contextBridge.exposeInMainWorld('api', {
   resize: (w, h) => ipcRenderer.send('resize', w, h),
   openUsage: () => ipcRenderer.send('open-usage'),
   quit: () => ipcRenderer.send('quit'),
+  // barra na taskbar
+  minimizeToStrip: () => ipcRenderer.send('minimize-to-strip'),
+  restorePanel: () => ipcRenderer.send('restore-panel'),
+  stripMove: (dx, dy) => ipcRenderer.send('strip-move', dx, dy),
+  stripMoveEnd: () => ipcRenderer.send('strip-move-end'),
 })

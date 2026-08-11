@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'none'; connect-src 'none'"
+    />
+    <title>Claude Glass — barra</title>
+    <link rel="stylesheet" href="strip.css" />
+  </head>
+  <body class="state-idle">
+    <!-- A pilula inteira e a area de arrasto E o botao de restaurar: gesto
+         curto (< 4px) restaura o painel, gesto longo move a barra. -->
+    <div id="pill" title="Claude Glass">
+      <div id="avatar">
+        <svg id="claude" viewBox="0 0 100 90" width="34" height="31" aria-hidden="true">
+          <g id="hardhat"></g>
+          <g id="body"></g>
+          <g id="eyes"></g>
+        </svg>
+        <span id="dot"></span>
+        <svg id="zzz" viewBox="0 0 44 44" width="34" height="34" aria-hidden="true">
+          <text x="1" y="33" class="z1">Z</text>
+          <text x="17" y="19" class="z2">Z</text>
+        </svg>
+      </div>
+
+      <div id="meter">
+        <div class="row">
+          <span class="track"><span id="session-fill" class="fill"></span></span>
+          <span id="session-pct" class="num">—</span>
+        </div>
+        <div class="row">
+          <span class="track"><span id="week-fill" class="fill"></span></span>
+          <span id="week-pct" class="num">—</span>
+        </div>
+      </div>
+    </div>
+
+    <script src="sprite.js"></script>
+    <script src="strip.js"></script>
+  </body>
+</html>

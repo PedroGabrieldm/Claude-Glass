@@ -28,6 +28,7 @@
       "preload.js",
       "usage.js",
       "auth.js",
+      "taskbar.js",
       "config.json",
       "renderer/**",
       "assets/**"

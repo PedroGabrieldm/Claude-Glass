@@ -1,0 +1,268 @@
+/* Barra compacta sobre a taskbar — spec do wireframe "Widget Compacto", turno 3.
+   Janela 300x70; a pilula fecha em 287x56 e a folga existe para a sombra nao
+   ser cortada pela borda da janela. */
+
+:root {
+  --pill: #241713;
+  --pixel: #d57658;
+  --eye: #221b16;
+  --fill: #e8845f;
+  --track: rgba(255, 255, 255, 0.09);
+  --num: #f0e6e2;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 300px;
+  height: 70px;
+  background: transparent;
+  overflow: hidden;
+  /* a barra nunca tem foco; selecionar texto aqui so atrapalha o arrasto */
+  user-select: none;
+  cursor: default;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+#pill {
+  position: absolute;
+  left: 6px;
+  top: 7px;
+  width: 287px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px 0 11px;
+  border-radius: 18px;
+  background: var(--pill);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  transition:
+    opacity 0.25s ease,
+    border-color 0.25s ease;
+}
+
+/* ---- avatar + bolinha de status ---- */
+
+#avatar {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#claude {
+  overflow: visible; /* o capacete sobe acima do viewBox */
+  shape-rendering: crispEdges;
+  transform-origin: 50% 100%;
+  /* o balanco fica no SVG INTEIRO: se ficasse so no #body, o capacete
+     boiava parado enquanto o corpo balancava embaixo */
+  animation: sway 3.6s ease-in-out infinite;
+}
+#body rect {
+  fill: var(--pixel);
+  transition: fill 0.25s ease;
+}
+#eyes rect {
+  fill: var(--eye);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: blink 5.5s infinite;
+}
+
+@keyframes sway {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-1.5px) rotate(-2deg);
+  }
+}
+@keyframes blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+
+/* badge de status colado no avatar */
+#dot {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #7a6c66;
+  border: 2px solid var(--pill);
+  transition: background 0.25s ease;
+}
+
+/* capacete: so quando esta trabalhando */
+#hardhat {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
+body.state-working #hardhat {
+  opacity: 1;
+  animation: hat-drop 0.42s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+/* A animacao move, mas NAO controla a opacidade: se ela for estrangulada
+   (janela sem foco), o capacete tem que aparecer mesmo assim. */
+@keyframes hat-drop {
+  0% {
+    transform: translateY(-22px) rotate(-14deg);
+  }
+  60% {
+    transform: translateY(2px) rotate(3deg);
+  }
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+}
+
+/* ---- sono ----
+   Em 34px nao cabe pose de dormir: quem conta a historia sao os Z. */
+#zzz {
+  position: absolute;
+  left: 14px;
+  top: -16px;
+  pointer-events: none;
+  opacity: 0;
+}
+body.state-sleeping #zzz {
+  opacity: 1;
+}
+#zzz text {
+  fill: #b3d2ff;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-weight: 700;
+  opacity: 0;
+  filter: drop-shadow(0 0 4px rgba(120, 170, 255, 0.95));
+}
+.z1 {
+  font-size: 24px;
+}
+.z2 {
+  font-size: 34px;
+}
+body.state-sleeping .z1 {
+  animation: floatz 3.6s ease-in-out infinite;
+}
+body.state-sleeping .z2 {
+  animation: floatz 3.6s ease-in-out infinite 1.8s;
+}
+/* sobe na diagonal crescendo — leitura de "sono" sem precisar de texto */
+@keyframes floatz {
+  0% {
+    opacity: 0;
+    transform: translate(0, 6px) scale(0.6);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(14px, -18px) scale(1.15);
+  }
+}
+
+/* ---- medidor: sessao em cima, semana embaixo ---- */
+
+#meter {
+  width: 212px;
+  flex: 0 0 212px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.track {
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--track);
+  overflow: hidden;
+}
+.fill {
+  display: block;
+  height: 100%;
+  width: 0%;
+  border-radius: 4px;
+  background: var(--fill);
+  transition:
+    width 0.35s ease,
+    background 0.25s ease;
+}
+.num {
+  width: 28px;
+  text-align: right;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--num);
+  font-variant-numeric: tabular-nums;
+  transition: color 0.25s ease;
+}
+
+/* ---- estados ---- */
+
+/* trabalhando: tudo em tom cheio, bolinha verde */
+body.state-working #dot {
+  background: #5fd08a;
+}
+
+/* ocioso e dormindo: a barra inteira recua um passo */
+body.state-idle #pill,
+body.state-sleeping #pill {
+  opacity: 0.72;
+}
+body.state-idle #body rect,
+body.state-sleeping #body rect {
+  fill: #a86450;
+}
+body.state-idle #dot,
+body.state-sleeping #dot {
+  background: #7a6c66;
+}
+body.state-idle .fill,
+body.state-sleeping .fill {
+  background: #a56a55;
+}
+
+/* perto do limite (e no limite): so a linha da sessao muda de cor —
+   a semanal continua normal, senao as duas gritam junto e nenhuma informa */
+body.state-stressed #pill,
+body.state-tired #pill {
+  border-color: rgba(232, 132, 95, 0.45);
+}
+body.state-stressed #session-fill,
+body.state-tired #session-fill {
+  background: #f2b04a;
+}
+body.state-stressed #session-pct,
+body.state-tired #session-pct {
+  color: #f7d9a8;
+}
+body.state-stressed #dot,
+body.state-tired #dot {
+  background: #f2b04a;
+}

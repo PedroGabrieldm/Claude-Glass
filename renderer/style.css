@@ -712,7 +712,37 @@ body.collapsed #shadow {
   pointer-events: none;
   transition: opacity 0.2s ease;
 }
-/* hard hat colors live inline (built pixel-by-pixel in pet.js buildHat) */
+/* O capacete saiu de dentro do #robot: agora ele marca "trabalhando", e o modo
+   mecanico (configuracoes) o reaproveita junto com a chave de fenda. */
+#hardhat {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+body.state-working #hardhat,
+body.settings-open #hardhat {
+  opacity: 1;
+  animation: hat-drop 0.42s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+/* Cai de cima inclinado e assenta com um quique. A animacao so move: deixar a
+   opacidade com ela faz o capacete sumir de vez se o Chromium estrangular a
+   animacao (janela transparente / sem foco). */
+@keyframes hat-drop {
+  0% {
+    transform: translateY(-26px) rotate(-14deg);
+  }
+  60% {
+    transform: translateY(2px) rotate(3deg);
+  }
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+}
+#hardhat {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
+/* hard hat colors live inline (built pixel-by-pixel in sprite.js) */
 .dr-handle {
   fill: #c0392b;
 }
@@ -1028,23 +1058,24 @@ body.state-sleeping #zzz {
   opacity: 0;
   filter: drop-shadow(0 0 4px rgba(120, 170, 255, 0.95));
 }
+/* Z maiores e ciclo mais lento: no tamanho antigo o sono passava despercebido */
 .z1 {
-  font-size: 19px;
+  font-size: 27px;
 }
 .z2 {
-  font-size: 14px;
+  font-size: 20px;
 }
 .z3 {
-  font-size: 10px;
+  font-size: 14px;
 }
 body.state-sleeping .z1 {
-  animation: floatz 3s ease-in-out infinite;
+  animation: floatz 3.6s ease-in-out infinite;
 }
 body.state-sleeping .z2 {
-  animation: floatz 3s ease-in-out infinite 1s;
+  animation: floatz 3.6s ease-in-out infinite 1.2s;
 }
 body.state-sleeping .z3 {
-  animation: floatz 3s ease-in-out infinite 2s;
+  animation: floatz 3.6s ease-in-out infinite 2.4s;
 }
 
 #dropzone {

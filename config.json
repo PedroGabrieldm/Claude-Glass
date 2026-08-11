@@ -1,6 +1,16 @@
 {
   "plan": "max5x",
   "startWithWindows": true,
+  "minimizeTo": "inline",
+  "strip": {
+    "width": 300,
+    "height": 70,
+    "anchor": "auto",
+    "gap": 8,
+    "reservedRight": 290,
+    "offsetX": 0,
+    "offsetY": 0
+  },
   "sessionTokenBudget": 630000000,
   "weeklyTokenBudget": 3450000000,
   "weeklyAnchorIso": null,
