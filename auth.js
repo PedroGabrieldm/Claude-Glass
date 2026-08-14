@@ -112,7 +112,18 @@ async function complete(pasted) {
   pending = null
 }
 
-async function refresh() {
+// O refresh_token e rotativo e de uso unico: quem renova invalida o anterior.
+// Duas renovacoes simultaneas com o mesmo token fazem a segunda levar 400
+// invalid_grant — e um 400 aqui vira 401 la embaixo, que apaga o login. No
+// arranque isso acontecia sempre, porque main.js pede uso e perfil no mesmo
+// tick. Uma renovacao em voo e compartilhada por todos que a esperam.
+let refreshing = null
+function refresh() {
+  if (!refreshing) refreshing = doRefresh().finally(() => (refreshing = null))
+  return refreshing
+}
+
+async function doRefresh() {
   const t = load()
   if (!t?.refresh_token) throw Object.assign(new Error('no refresh token'), { status: 401 })
   const res = await fetch(TOKEN_URL, {
@@ -152,17 +163,32 @@ function win(o) {
     : null
 }
 
+// Uma chamada autenticada. Um 401 aqui nao significa sessao morta: o
+// access_token pode ter sido recusado com o refresh_token ainda bom. Como quem
+// chama trata 401 como logout, renovamos e tentamos de novo antes de desistir —
+// so um 401 que sobrevive a renovacao encerra a sessao de verdade.
+async function apiGet(url) {
+  const call = (token) =>
+    fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'anthropic-beta': 'oauth-2025-04-20',
+        'anthropic-version': '2023-06-01',
+        'User-Agent': UA,
+      },
+    })
+
+  let res = await call(await validToken())
+  if (res.status === 401) {
+    await refresh() // se o refresh_token tambem morreu, isto lanca 401
+    res = await call(load().access_token)
+  }
+  return res
+}
+
 // Step 3: fetch the authoritative usage
 async function fetchUsage() {
-  const token = await validToken()
-  const res = await fetch(USAGE_URL, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'anthropic-beta': 'oauth-2025-04-20',
-      'anthropic-version': '2023-06-01',
-      'User-Agent': UA,
-    },
-  })
+  const res = await apiGet(USAGE_URL)
   if (!res.ok) {
     const body = await res.text().catch(() => '')
     throw Object.assign(new Error(`usage ${res.status}: ${body.slice(0, 150)}`), {
@@ -182,15 +208,7 @@ async function fetchUsage() {
 // only changes on logout/login, so we don't re-fetch on every usage poll.
 async function fetchProfile() {
   if (profile) return profile
-  const token = await validToken()
-  const res = await fetch(PROFILE_URL, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'anthropic-beta': 'oauth-2025-04-20',
-      'anthropic-version': '2023-06-01',
-      'User-Agent': UA,
-    },
-  })
+  const res = await apiGet(PROFILE_URL)
   if (!res.ok) {
     throw Object.assign(new Error(`profile ${res.status}`), { status: res.status })
   }
