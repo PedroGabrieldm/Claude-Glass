@@ -55,8 +55,16 @@ function render() {
 
   // sem rotulo de texto na pilula: a bolinha carrega o status e a palavra
   // vive no tooltip (decisao do wireframe)
+  // o tooltip e o unico espaco da barra para os limites por modelo
+  const scopedLines = liveOn
+    ? (realUsage.scoped || []).map((m) => `${m.label} ${Math.round(m.pct)}%`)
+    : []
   el('pill').title = liveOn
-    ? `Claude Glass · ${LABEL[st]}\nSessão ${Math.round(sessPct)}% · 7 dias ${Math.round(wkPct)}%`
+    ? [
+        `Claude Glass · ${LABEL[st]}`,
+        `Sessão ${Math.round(sessPct)}% · 7 dias ${Math.round(wkPct)}%`,
+        ...(scopedLines.length ? [`7 dias · ${scopedLines.join(' · ')}`] : []),
+      ].join('\n')
     : `Claude Glass · ${LABEL[st]}\nConecte a conta para ver o uso em %`
 }
 

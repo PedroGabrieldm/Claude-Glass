@@ -16,7 +16,8 @@ A floating, translucent widget that sits in the corner of your screen. It reads
 Claude Code's local logs and shows:
 
 - how many tokens you've spent in the current 5-hour session and over the last 7 days
-- how much of your limit that represents (as a percentage, once you connect your account)
+- how much of your limit that represents and how much is left (as a percentage,
+  once you connect your account), including weekly caps that apply to a single model
 - usage per model over 7 days, plus a 30-day heat map
 - a pet that sleeps when you stop, works when Claude works, and catches fire
   when usage crosses a threshold you choose

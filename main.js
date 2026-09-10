@@ -151,7 +151,7 @@ function createWindow() {
       broadcast('usage', data)
       checkAlerts(config, data)
       // a leitura autoritativa (OAuth) tem precedencia sobre a estimativa local
-      if (realUsage) updateTray(realUsage.session?.pct, realUsage.week?.pct, true)
+      if (realUsage) updateTray(realUsage.session?.pct, realUsage.week?.pct, true, realUsage.scoped)
       else updateTray(data.session.pct, data.week.pct, false)
     } catch (err) {
       win.webContents.send('usage-error', String(err))
@@ -200,7 +200,7 @@ async function pollUsage() {
     const u = await auth.fetchUsage()
     usageBackoff = 5 * 60 * 1000
     realUsage = u
-    updateTray(u.session?.pct, u.week?.pct, true)
+    updateTray(u.session?.pct, u.week?.pct, true, u.scoped)
     broadcast('real-usage', u)
   } catch (e) {
     if (e && e.status === 429) {
@@ -241,7 +241,7 @@ ipcMain.on('auth-code', async (_e, code) => {
       const u = await auth.fetchUsage()
       ok()
       realUsage = u // sem isto o % real so aparecia no poll seguinte, 5min depois
-      updateTray(u.session?.pct, u.week?.pct, true)
+      updateTray(u.session?.pct, u.week?.pct, true, u.scoped)
       broadcast('real-usage', u)
     } catch (e) {
       if (e && e.status === 429) ok()
@@ -570,7 +570,7 @@ function refreshTrayMenu() {
 
 const fmtPct = (v) => (Number.isFinite(v) ? `${Math.round(v)}%` : '—')
 
-function updateTray(session, week, real) {
+function updateTray(session, week, real, scoped) {
   if (!tray || tray.isDestroyed()) return
   const fire = Number.isFinite(session) && session >= (config.fireThreshold ?? 90)
   if (fire !== trayIsFire) {
@@ -578,7 +578,13 @@ function updateTray(session, week, real) {
     trayIsFire = fire
   }
   const src = real ? '' : ' (estimativa)'
-  tray.setToolTip(`Claude Glass${src}\nSessão: ${fmtPct(session)}\n7 dias: ${fmtPct(week)}`)
+  // os limites por modelo entram como linhas extras; sem eles o tooltip fica igual
+  const lines = (scoped || []).map((m) => `7 dias · ${m.label}: ${fmtPct(m.pct)}`)
+  tray.setToolTip(
+    [`Claude Glass${src}`, `Sessão: ${fmtPct(session)}`, `7 dias: ${fmtPct(week)}`, ...lines].join(
+      '\n',
+    ),
+  )
 }
 
 function createTray() {

@@ -13,7 +13,8 @@ Um widget flutuante e translúcido que fica no canto da tela. Ele lê os logs
 locais do Claude Code e mostra:
 
 - quantos tokens você gastou na sessão de 5h e nos últimos 7 dias
-- quanto do seu limite isso representa (em %, quando você conecta a conta)
+- quanto do seu limite isso representa e quanto ainda resta (em %, quando você
+  conecta a conta), inclusive nos limites semanais que valem só para um modelo
 - consumo por modelo nos últimos 7 dias e um mapa dos últimos 30 dias
 - um pet que dorme quando você para, trabalha quando o Claude trabalha e pega
   fogo quando o consumo passa do limiar que você definir
@@ -129,7 +130,10 @@ arquivo mais recente para descobrir o que o Claude está fazendo agora (lendo,
 editando, rodando comando, planejando) — é isso que muda a animação do pet.
 
 Quando você conecta a conta, a % passa a vir do endpoint de uso da Anthropic em
-vez dos orçamentos estimados.
+vez dos orçamentos estimados. De lá vêm três coisas: a sessão de 5h, o teto
+semanal de todos os modelos e um teto semanal separado para cada modelo que
+tenha um (hoje o Fable; o Opus divide o teto geral). Cada barra mostra quanto
+resta e quando reseta.
 
 ## Limitações conhecidas
 

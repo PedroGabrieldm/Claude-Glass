@@ -1479,10 +1479,18 @@ body.state-tired #status-text {
 
 /* meter subtitle */
 .sub {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
   font-size: 9.5px;
   color: var(--muted);
   margin-top: 4px;
   letter-spacing: 0.2px;
+}
+/* o que resta ganha a ponta esquerda; os tokens seguem a direita sem quebrar */
+.sub span:last-child {
+  flex: none;
+  font-variant-numeric: tabular-nums;
 }
 
 /* 30-day map */
@@ -1574,6 +1582,17 @@ body.state-tired #status-text {
   background: linear-gradient(90deg, #c98a6e, var(--coral-soft));
 }
 .fill.high {
+  background: linear-gradient(90deg, #e98a68, #d8442f);
+}
+/* limites por modelo: mesma barra, cor propria para nao competir com o geral */
+#scoped-meters .meter {
+  margin-top: 9px;
+}
+.fill.scoped {
+  background: linear-gradient(90deg, #8a7fb8, #a68fd6);
+}
+/* perto do teto o alerta vale mais que a cor do modelo */
+.fill.scoped.high {
   background: linear-gradient(90deg, #e98a68, #d8442f);
 }
 

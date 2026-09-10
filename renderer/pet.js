@@ -82,10 +82,21 @@ function fmtTokens(t) {
   return String(t)
 }
 function fmtReset(ms) {
-  if (!ms || ms <= 0) return 'now'
+  if (!ms || ms <= 0) return 'agora'
   const h = Math.floor(ms / 3600000)
   const m = Math.floor((ms % 3600000) / 60000)
+  // a janela semanal chega a 160h; em dias cabe na linha e se le de relance
+  if (h >= 48) return `${Math.floor(h / 24)}d ${h % 24}h`
   return h > 0 ? `${h}h ${m}m` : `${m}m`
+}
+// "quanto ainda tenho": o oposto do % consumido, que e o numero que a barra mostra
+function fmtLeft(pct) {
+  const left = Math.max(0, 100 - pct)
+  return left >= 10 || left === 0 ? `restam ${Math.round(left)}%` : `restam ${left.toFixed(1)}%`
+}
+// duas pontas na mesma linha: o que resta a esquerda, os tokens a direita
+function subLine(left, right) {
+  return `<span>${left}</span><span>${right || ''}</span>`
 }
 function setState(name) {
   const b = document.body
@@ -298,6 +309,32 @@ function renderModels(list) {
   }
 }
 
+// Limites semanais por modelo (kind 'weekly_scoped' da API). So aparecem quando
+// a conta tem um teto proprio para aquele modelo — Opus, hoje, divide o teto
+// geral e por isso nao ganha barra. Os tokens vem da leitura local dos logs,
+// casados pelo prefixo do rotulo ("Fable" cobre "Fable 5.1").
+function renderScoped(scoped, byModel) {
+  const box = el('scoped-meters')
+  box.innerHTML = ''
+  for (const s of scoped || []) {
+    const tokens = (byModel || [])
+      .filter((m) => m.label === s.label || m.label.startsWith(`${s.label} `))
+      .reduce((a, m) => a + m.tokens, 0)
+    const pct = Math.min(100, s.pct)
+    const row = document.createElement('div')
+    row.className = 'meter'
+    row.innerHTML =
+      `<div class="meter-top"><span>semanal · ${s.label}${s.active ? ' <i>em uso</i>' : ''}</span>` +
+      `<span>${Math.round(s.pct)}%</span></div>` +
+      `<div class="track"><div class="fill scoped${pct >= 80 ? ' high' : ''}" style="width:${pct}%"></div></div>` +
+      `<div class="sub">${subLine(
+        `${fmtLeft(s.pct)}${s.resetMs != null ? ` · reset em ${fmtReset(s.resetMs)}` : ''}`,
+        tokens ? `${fmtTokens(tokens)} tokens` : '',
+      )}</div>`
+    box.appendChild(row)
+  }
+}
+
 // one-shot reaction (adds a class, removes after ms)
 function oneShot(cls, ms) {
   document.body.classList.add(cls)
@@ -434,18 +471,20 @@ function render(d) {
   const sf = el('session-fill')
   sf.style.width = `${sessPct}%`
   sf.classList.toggle('high', sessPct >= 80)
-  el('session-sub').textContent = sessActive
-    ? `reset em ${fmtReset(sessReset)} · ${fmtTokens(d.session.tokens)} tokens`
-    : 'sem sessão ativa'
+  el('session-sub').innerHTML = sessActive
+    ? subLine(`${fmtLeft(sessPct)} · reset em ${fmtReset(sessReset)}`, `${fmtTokens(d.session.tokens)} tokens`)
+    : subLine('sem sessão ativa', '')
 
   el('week-pct').textContent = `${Math.round(wkPct)}%`
   const wf = el('week-fill')
   wf.style.width = `${wkPct}%`
   wf.classList.toggle('high', wkPct >= 80)
-  el('week-sub').textContent =
+  el('week-sub').innerHTML =
     wkReset != null
-      ? `reset em ${fmtReset(wkReset)} · ${fmtTokens(d.week.tokens)} tokens`
-      : `${fmtTokens(d.week.tokens)} tokens · últimos 7 dias`
+      ? subLine(`${fmtLeft(wkPct)} · reset em ${fmtReset(wkReset)}`, `${fmtTokens(d.week.tokens)} tokens`)
+      : subLine('últimos 7 dias', `${fmtTokens(d.week.tokens)} tokens`)
+
+  renderScoped(liveOn ? realUsage.scoped : [], d.byModel || [])
 
   renderModels(d.byModel || [])
   renderHeat(d.days30 || [])

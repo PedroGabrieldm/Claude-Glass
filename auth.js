@@ -163,6 +163,16 @@ function win(o) {
     : null
 }
 
+// A API migrou os limites para uma lista generica `limits[]`. Os campos antigos
+// (seven_day_opus, seven_day_sonnet) ja voltam null, e o limite por modelo agora
+// chega como kind:'weekly_scoped' com scope.model.display_name. Ler a lista e o
+// unico jeito de saber quanto resta em cada modelo.
+function lim(l) {
+  return l && typeof l.percent === 'number'
+    ? { pct: l.percent, resetMs: l.resets_at ? Date.parse(l.resets_at) - Date.now() : null }
+    : null
+}
+
 // Uma chamada autenticada. Um 401 aqui nao significa sessao morta: o
 // access_token pode ter sido recusado com o refresh_token ainda bom. Como quem
 // chama trata 401 como logout, renovamos e tentamos de novo antes de desistir —
@@ -196,11 +206,37 @@ async function fetchUsage() {
     })
   }
   const j = await res.json()
+  const limits = Array.isArray(j.limits) ? j.limits : []
+  const byKind = (k) => limits.find((l) => l && l.kind === k)
+
+  // Um limite por modelo para cada `weekly_scoped`. Sem nome legivel nao da para
+  // rotular a barra, entao a entrada e descartada.
+  const scoped = limits
+    .filter((l) => l && l.kind === 'weekly_scoped')
+    .map((l) => {
+      const w = lim(l)
+      const label = l.scope?.model?.display_name || l.scope?.model?.id
+      return w && label ? { label, pct: w.pct, resetMs: w.resetMs, active: !!l.is_active } : null
+    })
+    .filter(Boolean)
+
+  // Contas ainda no formato antigo nao trazem `limits`; o par Opus/Sonnet vira
+  // a mesma lista para o resto do app nao precisar saber a diferenca.
+  if (!scoped.length) {
+    for (const [label, o] of [
+      ['Opus', j.seven_day_opus],
+      ['Sonnet', j.seven_day_sonnet],
+    ]) {
+      const w = win(o)
+      if (w) scoped.push({ label, pct: w.pct, resetMs: w.resetMs, active: false })
+    }
+  }
+  scoped.sort((a, b) => b.pct - a.pct)
+
   return {
-    session: win(j.five_hour) || { pct: 0, resetMs: null },
-    week: win(j.seven_day) || { pct: 0, resetMs: null },
-    sonnet: win(j.seven_day_sonnet),
-    opus: win(j.seven_day_opus),
+    session: lim(byKind('session')) || win(j.five_hour) || { pct: 0, resetMs: null },
+    week: lim(byKind('weekly_all')) || win(j.seven_day) || { pct: 0, resetMs: null },
+    scoped,
   }
 }
 
