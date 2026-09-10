@@ -30,6 +30,7 @@
       "preload.js",
       "usage.js",
       "auth.js",
+      "alerts.js",
       "taskbar.js",
       "config.json",
       "renderer/**",
