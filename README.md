@@ -106,7 +106,7 @@ Abra pela engrenagem ⚙.
 | Opção | O que faz |
 |---|---|
 | Iniciar com o Windows | Abre o widget sozinho ao ligar o computador. Ligado por padrão. |
-| Alertas | Notificação quando a sessão ou a semana passa de cada limiar |
+| Alertas | Notificação quando a sessão, a semana ou o limite semanal de um modelo passa de cada limiar |
 | Limites de alerta (%) | Os dois níveis que disparam notificação |
 | Pegar fogo em (%) | A partir de quanto o pet pega fogo |
 
@@ -158,6 +158,7 @@ npm run dist:win   # empacota
 | `preload.js` | bridge entre main e renderer (`contextBridge`) |
 | `usage.js` | lê os `.jsonl` e calcula tokens, sessão, atividade |
 | `auth.js` | OAuth PKCE e os endpoints de uso e perfil |
+| `alerts.js` | decide quais limiares alertam (o `main.js` só notifica) |
 | `renderer/` | UI: `index.html`, `pet.js`, `style.css` |
 
 O `npm test` inclui um teste de paridade entre `preload.js` e o renderer. Ele

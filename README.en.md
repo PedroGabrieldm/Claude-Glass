@@ -109,7 +109,7 @@ Open with the gear ⚙.
 | Option | What it does |
 |---|---|
 | Iniciar com o Windows | Launches the widget at startup. On by default. |
-| Alertas | Notification when the session or week crosses each threshold |
+| Alertas | Notification when the session, the week, or a single model's weekly cap crosses each threshold |
 | Limites de alerta (%) | The two levels that trigger a notification |
 | Pegar fogo em (%) | Usage level at which the pet catches fire |
 
@@ -158,6 +158,7 @@ npm run dist:win   # package
 | `preload.js` | bridge between main and renderer (`contextBridge`) |
 | `usage.js` | reads the `.jsonl` files; computes tokens, session, activity |
 | `auth.js` | OAuth PKCE plus the usage and profile endpoints |
+| `alerts.js` | decides which thresholds fire (`main.js` only shows the toast) |
 | `renderer/` | UI: `index.html`, `pet.js`, `style.css` |
 
 `npm test` includes a parity check between `preload.js` and the renderer. It

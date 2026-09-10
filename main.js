@@ -14,6 +14,7 @@ const os = require('node:os')
 const { getUsage } = require('./usage')
 const auth = require('./auth')
 const { readTaskbar } = require('./taskbar')
+const { checkAlerts } = require('./alerts')
 
 const DATA_DIR = process.env.CLAUDE_CONFIG_DIR
   ? path.join(process.env.CLAUDE_CONFIG_DIR, 'claude-glass')
@@ -88,29 +89,11 @@ function loadConfig() {
 }
 
 const armed = new Set()
-function checkAlerts(config, d) {
-  if (!config.alerts || !Notification.isSupported()) return
-  const ths = config.alertThresholds || [80, 95]
-  const scopes = [
-    ['sessão', d.session.pct],
-    ['uso semanal', d.week.pct],
-  ]
-  for (const [name, pct] of scopes) {
-    for (const t of ths) {
-      const key = `${name}:${t}`
-      if (pct >= t) {
-        if (!armed.has(key)) {
-          armed.add(key)
-          new Notification({
-            title: 'Claude Glass',
-            body: `Sua ${name} passou de ${t}% — agora em ${Math.round(pct)}%`,
-            silent: false,
-          }).show()
-        }
-      } else {
-        armed.delete(key)
-      }
-    }
+// A regra de quem alerta vive em alerts.js; aqui so vira notificacao.
+function notifyAlerts(config, local, real) {
+  if (!Notification.isSupported()) return
+  for (const body of checkAlerts(config, local, real, armed)) {
+    new Notification({ title: 'Claude Glass', body, silent: false }).show()
   }
 }
 
@@ -149,7 +132,8 @@ function createWindow() {
       const data = getUsage(config)
       lastUsage = data
       broadcast('usage', data)
-      checkAlerts(config, data)
+      // o dado real tem precedencia; a estimativa local so alerta sem conta
+      notifyAlerts(config, data, realUsage)
       // a leitura autoritativa (OAuth) tem precedencia sobre a estimativa local
       if (realUsage) updateTray(realUsage.session?.pct, realUsage.week?.pct, true, realUsage.scoped)
       else updateTray(data.session.pct, data.week.pct, false)
