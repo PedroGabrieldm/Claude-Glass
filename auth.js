@@ -18,13 +18,58 @@ const DATA_DIR = process.env.CLAUDE_CONFIG_DIR
   ? path.join(process.env.CLAUDE_CONFIG_DIR, 'usage-monitor')
   : path.join(os.homedir(), '.claude-usage-monitor')
 const TOKEN_PATH = path.join(DATA_DIR, 'auth.json')
+// O par PKCE do login em curso. Fica em disco porque o login acontece fora do
+// app: entre abrir o navegador e colar o codigo o widget pode ser fechado pela
+// bandeja ou reiniciado, e ai a troca morria com um "no pending auth".
+const PENDING_PATH = path.join(DATA_DIR, 'pending-auth.json')
+const PENDING_TTL = 20 * 60 * 1000
+
+// Antivirus e proxies com inspecao HTTPS (Kaspersky, ESET, proxy corporativo)
+// reemitem o certificado de api.anthropic.com com uma raiz propria. Essa raiz
+// fica no repositorio do Windows, entao o Chromium aceita — mas o fetch do Node
+// usa a lista embutida dele e recusa com SELF_SIGNED_CERT_IN_CHAIN, o que
+// derrubava a busca de uso mesmo com o token bom. Dentro do Electron usamos a
+// pilha de rede do Chromium, que le o repositorio do sistema (e o proxy junto).
+const builtinFetch = globalThis.fetch
+let chromiumFetch
+function http(url, opts) {
+  // os testes trocam o global por um mock; isso tem precedencia
+  if (globalThis.fetch !== builtinFetch) return globalThis.fetch(url, opts)
+  if (chromiumFetch === undefined) {
+    try {
+      // fora do Electron, require('electron') devolve o caminho do binario
+      const e = require('electron')
+      chromiumFetch = typeof e?.net?.fetch === 'function' ? e.net.fetch.bind(e.net) : null
+    } catch {
+      chromiumFetch = null
+    }
+  }
+  return (chromiumFetch || builtinFetch)(url, opts)
+}
 
 const b64url = (buf) =>
   buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 
 let tokens = null // { access_token, refresh_token, expires_at }
-let pending = null // { verifier, state }
+let pending = null // { verifier, state, at }
 let profile = null // { email, name, plan } — cached account identity
+
+function loadPending() {
+  if (pending) return pending
+  try {
+    const p = JSON.parse(fs.readFileSync(PENDING_PATH, 'utf8'))
+    if (p && p.verifier && Date.now() - (p.at || 0) < PENDING_TTL) pending = p
+  } catch {}
+  return pending
+}
+function savePending(p) {
+  pending = p
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true })
+    if (p) fs.writeFileSync(PENDING_PATH, JSON.stringify(p), { mode: 0o600 })
+    else fs.unlinkSync(PENDING_PATH)
+  } catch {}
+}
 
 function load() {
   if (tokens) return tokens
@@ -58,7 +103,7 @@ function begin() {
   const verifier = b64url(crypto.randomBytes(32))
   const challenge = b64url(crypto.createHash('sha256').update(verifier).digest())
   const state = b64url(crypto.randomBytes(32))
-  pending = { verifier, state }
+  savePending({ verifier, state, at: Date.now() })
   const params = {
     code: 'true',
     client_id: CLIENT_ID,
@@ -82,12 +127,13 @@ async function complete(pasted) {
   // the rate-limited code exchange entirely.
   if (!raw.includes('#')) {
     save({ access_token: raw, refresh_token: null, expires_at: Date.now() + 365 * 864e5 })
-    pending = null
+    savePending(null)
     return
   }
-  if (!pending) throw new Error('no pending auth')
+  if (!loadPending())
+    throw new Error('login expirou - clique em "Entrar pelo navegador" de novo')
   const [code, returnedState] = raw.split('#')
-  const res = await fetch(TOKEN_URL, {
+  const res = await http(TOKEN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'User-Agent': UA },
     body: JSON.stringify({
@@ -109,7 +155,7 @@ async function complete(pasted) {
     refresh_token: j.refresh_token,
     expires_at: Date.now() + (j.expires_in || 3600) * 1000,
   })
-  pending = null
+  savePending(null)
 }
 
 // O refresh_token e rotativo e de uso unico: quem renova invalida o anterior.
@@ -126,7 +172,7 @@ function refresh() {
 async function doRefresh() {
   const t = load()
   if (!t?.refresh_token) throw Object.assign(new Error('no refresh token'), { status: 401 })
-  const res = await fetch(TOKEN_URL, {
+  const res = await http(TOKEN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'User-Agent': UA },
     body: JSON.stringify({
@@ -179,7 +225,7 @@ function lim(l) {
 // so um 401 que sobrevive a renovacao encerra a sessao de verdade.
 async function apiGet(url) {
   const call = (token) =>
-    fetch(url, {
+    http(url, {
       headers: {
         Authorization: `Bearer ${token}`,
         'anthropic-beta': 'oauth-2025-04-20',

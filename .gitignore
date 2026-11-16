@@ -15,3 +15,5 @@ usage-monitor/
 .claude-glass/
 .env
 .env.*
+pending-auth.json
+**/pending-auth.json
