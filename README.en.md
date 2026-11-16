@@ -29,9 +29,15 @@ where the data comes from.
 
 **Option 1 — grab the build**
 
-1. Go to [Releases](https://github.com/vitoriahellen/Claude-Glass/releases)
-2. Download the `.zip` and extract it wherever you like
-3. Run `Claude Glass.exe`
+1. Go to [Releases](https://github.com/PedroGabrieldm/Claude-Glass/releases/latest)
+2. Download `Claude-Glass-Setup-x.y.z.exe` and run it
+3. Follow the installer — it creates the shortcuts and opens the widget at the end
+
+To update, install the new version over the old one: settings and login are
+kept.
+
+Rather not install? The same page has a `.zip`: extract it anywhere and run
+`Claude Glass.exe`.
 
 Windows may show "Windows protected your PC" because the executable isn't
 signed. Click **More info → Run anyway**.
@@ -39,7 +45,7 @@ signed. Click **More info → Run anyway**.
 **Option 2 — run from source**
 
 ```bash
-git clone https://github.com/vitoriahellen/Claude-Glass.git
+git clone https://github.com/PedroGabrieldm/Claude-Glass.git
 cd Claude-Glass
 npm install
 npm start
@@ -51,7 +57,8 @@ To build your own executable:
 npm run dist:win
 ```
 
-Output lands in `dist/win-unpacked/Claude Glass.exe`, plus a `.zip` in `dist/`.
+Output lands in `dist/`: the `Claude-Glass-Setup-x.y.z.exe` installer, a `.zip`,
+and the `win-unpacked/` folder with the bare `Claude Glass.exe`.
 
 ## Connecting your account (optional)
 
@@ -115,15 +122,19 @@ Open with the gear ⚙.
 
 ## Uninstalling
 
-The app has no installer, so it won't appear under "Add or remove programs".
-
-1. **Uncheck "Iniciar com o Windows"** in Settings before deleting anything,
-   or the startup entry is left orphaned. If you already deleted it, remove the
-   shortcut from `Win+R` → `shell:startup`.
-2. Close the widget with the **×**
-3. Delete the folder you extracted the app into
-4. Delete the data: `%USERPROFILE%\.claude-usage-monitor` (the token) and
-   `%USERPROFILE%\.claude-glass` (your settings)
+1. **Uncheck "Iniciar com o Windows"** in Settings before removing anything,
+   or the startup entry is left orphaned. If you already removed the app, delete
+   the `com.datasystem.claude-glass` value under
+   `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` (`Win+R` → `regedit`).
+2. Quit the widget: right-click the icon next to the clock → **Sair** ("quit").
+   The **×** only hides it to the tray.
+3. Remove the app:
+   - **installed with the Setup:** Windows Settings → Apps → Installed apps →
+     Claude Glass → Uninstall
+   - **extracted from the `.zip`:** delete the folder
+4. Delete the data, which the uninstaller keeps on purpose:
+   `%USERPROFILE%\.claude-usage-monitor` (the token), `%USERPROFILE%\.claude-glass`
+   (your settings) and `%APPDATA%\claude-glass` (app cache)
 
 ## How it works
 
