@@ -365,12 +365,22 @@ function clampToScreen(x, y, width, height) {
       y < b.y + b.height - VISIBLE
     )
   })
-  if (fits) return { x, y }
+  if (fits) return { x: toInt(x), y: toInt(y) }
   const b = screen.getPrimaryDisplay().bounds
   return {
-    x: Math.min(Math.max(x, b.x), b.x + b.width - width),
-    y: Math.min(Math.max(y, b.y), b.y + b.height - height),
+    x: toInt(Math.min(Math.max(x, b.x), b.x + b.width - width)),
+    y: toInt(Math.min(Math.max(y, b.y), b.y + b.height - height)),
   }
+}
+
+// Coordenada de janela segura para o Electron. Math.round(-0.4) devolve -0, e
+// setPosition() recusa -0 com "conversion failure" — uma excecao no processo
+// principal, que vira a caixa "A JavaScript error occurred in the main
+// process". Acontece de verdade: com escala de tela fracionada (125%, 150%) o
+// screenY do ponteiro vem quebrado, e basta arrastar a barra cruzando o topo
+// do monitor (y entre -1 e 0). `|| 0` troca -0 (e NaN) por 0.
+function toInt(v) {
+  return Math.round(v) || 0
 }
 
 function positionStrip() {
@@ -473,9 +483,10 @@ ipcMain.on('restore-panel', restorePanel)
 
 ipcMain.on('strip-move', (_e, dx, dy) => {
   if (!strip || strip.isDestroyed()) return
+  if (!Number.isFinite(dx) || !Number.isFinite(dy)) return // delta invalido: ignora o quadro
   stripDragging = true // trava o tick de 60s, senao ele puxa a barra de volta no meio do gesto
   const [x, y] = strip.getPosition()
-  strip.setPosition(Math.round(x + dx), Math.round(y + dy))
+  strip.setPosition(toInt(x + dx), toInt(y + dy))
 })
 
 ipcMain.on('strip-move-end', () => {
