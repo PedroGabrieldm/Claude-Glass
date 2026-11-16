@@ -83,6 +83,20 @@ app.whenReady().then(async () => {
   // requestAnimationFrame, que o Chromium estrangula em janela transparente.
   // O comportamento funciona no app real; so nao e observavel neste harness.
 
+  // ---- animacoes em taxa reduzida (lowfps.js) ------------------------------
+  // As engrenagens sao SMIL e so aparecem nas configuracoes; fora delas tem
+  // que estar PARADAS (giravam invisiveis, a 240 quadros/s, o dia inteiro).
+  const gearTime = () => js(`document.getElementById('gears').getCurrentTime()`)
+  const g0 = await gearTime()
+  await new Promise((r) => setTimeout(r, 400))
+  check('engrenagens paradas fora das configuracoes', (await gearTime()) === g0)
+  await js(`document.getElementById('gear').click()`)
+  check(
+    'engrenagens giram com as configuracoes abertas',
+    await waitFor(async () => (await gearTime()) > g0),
+  )
+  await js(`document.getElementById('set-cancel').click()`)
+
   check(
     'clique no #gear abre configuracoes',
     await js(`document.getElementById('gear').click(); document.body.classList.contains('settings-open')`),
@@ -226,6 +240,30 @@ app.whenReady().then(async () => {
 
   usage({ sleeping: true })
   check('estado dormindo', (await waitFor(async () => (await state()) === 'state-sleeping')))
+
+  // lowfps.js: as animacoes infinitas ficam pausadas e quem avanca o tempo
+  // delas e o relogio proprio — senao o Chromium pinta a cada quadro do monitor
+  const loops = () =>
+    bjs(
+      `document.getAnimations()
+         .filter(a => a instanceof CSSAnimation && a.effect.getComputedTiming().iterations === Infinity)
+         .map(a => [a.playState, Number(a.currentTime)])`,
+    )
+  check(
+    'animacoes infinitas da barra ficam pausadas (balanco, piscada, Zs)',
+    await waitFor(async () => {
+      const a = await loops()
+      return a.length >= 4 && a.every(([st]) => st === 'paused')
+    }),
+  )
+  const t0 = await loops()
+  check(
+    'pausadas, mas o relogio proprio continua avancando o tempo delas',
+    await waitFor(async () => {
+      const a = await loops()
+      return a.length === t0.length && a.every(([, t], i) => t > t0[i][1])
+    }),
+  )
 
   bar.webContents.send('real-usage', {
     session: { pct: 95, resetMs: 1000 },
